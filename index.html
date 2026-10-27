@@ -33,17 +33,25 @@ footer{max-width:1120px;margin:-20px auto 0;padding:0 16px 24px;color:var(--mute
 </style>
 </head>
 <body>
-<header><h1>NutriBolo <span style="font-weight:400;font-size:16px">beta</span></h1><p>Receitas salvas • cálculo nutricional estimado • exportação em PNG</p></header>
+<header><h1>NutriBolo <span style="font-weight:400;font-size:16px">beta</span></h1><p>Bolos • salgados • docinhos • cálculo estimado e exportação em PNG</p></header>
 <main>
 <section>
   <div class="panel">
     <h2>1. Sua receita</h2>
-    <label for="recipeName">Nome da receita</label><input id="recipeName" placeholder="Ex.: Bolo de chocolate da casa">
+    <label for="recipeName">Nome do produto/receita</label><input id="recipeName" placeholder="Ex.: Bolo de chocolate da casa">
     <div class="grid2">
-      <div><label for="yieldGrams">Peso final da receita (g)</label><input id="yieldGrams" type="number" min="1" step="1" placeholder="Ex.: 1200"></div>
-      <div><label for="portionGrams">Porção declarada (g)</label><input id="portionGrams" type="number" min="1" step="1" value="60"></div>
+      <div><label for="productType">Tipo de produto</label><select id="productType"><option value="bolo">Bolo inteiro / fatia</option><option value="salgado">Salgado de festa</option><option value="docinho">Docinho</option><option value="outro">Outro produto</option></select></div>
+      <div><label for="preparation">Preparo</label><select id="preparation"><option value="na">Não se aplica / outro</option><option value="assado">Assado</option><option value="frito">Frito</option><option value="cozido">Cozido</option><option value="sem-preparo">Sem preparo final</option></select></div>
     </div>
-    <p class="small">Informe o peso do bolo pronto, já assado e sem embalagem. Isso é importante porque a água perdida no forno altera os valores por 100 g.</p>
+    <div class="grid2">
+      <div><label for="yieldGrams">Peso final pronto (g)</label><input id="yieldGrams" type="number" min="1" step="1" placeholder="Ex.: 1200"></div>
+      <div><label for="portionGrams">Porção usada no cálculo (g)</label><input id="portionGrams" type="number" min="1" step="1" value="60"></div>
+    </div>
+    <div class="grid2">
+      <div><label for="unitWeight">Peso de cada unidade (g)</label><input id="unitWeight" type="number" min="1" step="any" placeholder="Ex.: 25"></div>
+      <div><label for="packageCount">Unidades por embalagem</label><input id="packageCount" type="number" min="1" step="1" placeholder="Ex.: 12"></div>
+    </div>
+    <p class="small">Informe o peso final do produto pronto, sem embalagem. Para salgados fritos, pese depois de fritar e escorrer; para bolos, pese depois de assar e esfriar. O peso final afeta os valores por 100 g.</p>
     <h3>Ingredientes</h3>
     <div id="ingredients"></div>
     <button class="secondary" id="addIngredient">＋ Adicionar ingrediente</button>
@@ -105,12 +113,12 @@ footer{max-width:1120px;margin:-20px auto 0;padding:0 16px 24px;color:var(--mute
   <div class="panel">
     <h2>Como usar</h2>
     <ol class="small" style="padding-left:19px;line-height:1.8">
-      <li>Digite o nome e o peso final do bolo pronto.</li>
-      <li>Adicione cada ingrediente e a quantidade usada em gramas.</li>
-      <li>Selecione uma receita da lista para editar ou gerar novamente.</li>
-      <li>Confira a prévia e clique em “Baixar tabela PNG”.</li>
+      <li>Escolha a categoria do produto e o modo de preparo, quando aplicável.</li>
+      <li>Informe o peso final pronto, a porção e, se necessário, o peso por unidade e a quantidade por embalagem.</li>
+      <li>Adicione cada ingrediente e a quantidade usada na receita em gramas.</li>
+      <li>Confira a prévia e exporte PNG ou imprima. Os dados salvos no navegador continuam locais.</li>
     </ol>
-    <div class="notice"><b>Atenção:</b> esta versão é uma ferramenta pessoal de estimativa. A base inicial é pequena e não substitui a Tabela Brasileira de Composição de Alimentos (TACO), TBCA, rótulos dos fabricantes ou análise laboratorial. A rotulagem comercial pode exigir informações e critérios adicionais.</div>
+    <div class="notice"><b>Atenção:</b> esta versão é uma ferramenta pessoal de estimativa. A base inicial é pequena e não substitui a Tabela Brasileira de Composição de Alimentos (TACO), TBCA, rótulos dos fabricantes ou análise laboratorial. Esta prévia é uma estimativa e não comprova conformidade com a Anvisa. Antes de vender, valide ingredientes, arredondamentos, porções e demais informações obrigatórias para a categoria do produto.</div>
   </div>
 </section>
 </main>
@@ -168,7 +176,7 @@ function renderIngredients(){
  renderLabel();
 }
 function readRecipe(){
- return {id:currentId||('r_'+Date.now()),name:$('recipeName').value.trim(),yieldGrams:Number($('yieldGrams').value),portionGrams:Number($('portionGrams').value)||60,ingredients:ingredients.map(i=>({foodId:i.foodId,amount:Number(i.amount)||0}))};
+ return {id:currentId||('r_'+Date.now()),name:$('recipeName').value.trim(),productType:$('productType').value||'bolo',preparation:$('preparation').value||'na',unitWeight:Number($('unitWeight').value)||0,packageCount:Number($('packageCount').value)||0,yieldGrams:Number($('yieldGrams').value),portionGrams:Number($('portionGrams').value)||60,ingredients:ingredients.map(i=>({foodId:i.foodId,amount:Number(i.amount)||0}))};
 }
 function totalsFor(rec){
  const t={kcal:0,carb:0,protein:0,fat:0,sat:0,trans:0,fiber:0,sugar:0,added:0,sodium:0};let used=0;
@@ -183,7 +191,7 @@ function calculate(rec){
 function dailyPct(key,val){const ref=({kcal:2000,carb:300,added:50,protein:50,fat:65,sat:20,fiber:25,sodium:2000})[key];return ref?Math.round(val/ref*100)+'%':'—'}
 function renderLabel(){
  const rec=readRecipe(),c=calculate(rec);$('labelProduct').textContent=rec.name||'Receita sem nome';
- $('servingText').innerHTML='Porções por embalagem: '+(c.y>0?fmt(c.servings,1):'—')+'<br>Porção: '+fmt(c.p,0)+' g';
+ const typeNames={bolo:'Bolo inteiro / fatia',salgado:'Salgado de festa',docinho:'Docinho',outro:'Outro produto'};const unit=Number(rec.unitWeight)||0;const pack=Number(rec.packageCount)||0;let packLine=pack>0?'Unidades por embalagem: '+fmt(pack,0):'Porções por embalagem: '+(c.y>0?fmt(c.servings,1):'—');if(unit>0)packLine+=' • Unidade: '+fmt(unit,1)+' g';$('servingText').innerHTML=escapeHTML(typeNames[rec.productType]||typeNames.bolo)+' • '+escapeHTML(({assado:'assado',frito:'frito',cozido:'cozido','sem-preparo':'sem preparo final',na:'preparo não especificado'})[rec.preparation]||'')+'<br>'+packLine+'<br>Porção usada no cálculo: '+fmt(c.p,1)+' g';
  const rows=[
   ['Valor energético', 'kcal','kcal',true],['Carboidratos','carb','g'],['Açúcares totais','sugar','g'],['Açúcares adicionados','added','g'],
   ['Proteínas','protein','g'],['Gorduras totais','fat','g'],['Gorduras saturadas','sat','g'],['Gorduras trans','trans','g'],['Fibra alimentar','fiber','g'],['Sódio','sodium','mg']
@@ -203,8 +211,8 @@ function renderSaved(){
   wrap.append(open,del);box.appendChild(wrap);
  });
 }
-function loadRecipe(id){const r=recipes.find(x=>x.id===id);if(!r)return;currentId=r.id;$('recipeName').value=r.name||'';$('yieldGrams').value=r.yieldGrams||'';$('portionGrams').value=r.portionGrams||60;ingredients=r.ingredients.map(x=>({rowId:Math.random().toString(36),foodId:x.foodId,amount:x.amount}));renderIngredients();$('status').textContent='Receita carregada para edição.'}
-function newRecipe(){currentId=null;$('recipeName').value='';$('yieldGrams').value='';$('portionGrams').value=60;ingredients=[];addIngredientRow();$('status').textContent='Nova receita pronta.'}
+function loadRecipe(id){const r=recipes.find(x=>x.id===id);if(!r)return;currentId=r.id;$('recipeName').value=r.name||'';$('productType').value=r.productType||'bolo';$('preparation').value=r.preparation||'na';$('unitWeight').value=r.unitWeight||'';$('packageCount').value=r.packageCount||'';$('yieldGrams').value=r.yieldGrams||'';$('portionGrams').value=r.portionGrams||60;ingredients=r.ingredients.map(x=>({rowId:Math.random().toString(36),foodId:x.foodId,amount:x.amount}));renderIngredients();$('status').textContent='Receita carregada para edição.'}
+function newRecipe(){currentId=null;$('recipeName').value='';$('productType').value='bolo';$('preparation').value='na';$('unitWeight').value='';$('packageCount').value='';$('yieldGrams').value='';$('portionGrams').value=60;ingredients=[];addIngredientRow();$('status').textContent='Nova receita pronta.'}
 function saveRecipe(){
  const r=readRecipe();if(!r.name){alert('Digite um nome para a receita.');return}if(!r.ingredients.some(x=>x.amount>0)){alert('Adicione pelo menos um ingrediente com quantidade.');return}
  if(!r.yieldGrams){const used=totalsFor(r).used;if(confirm('Você não informou o peso final. Usar a soma dos ingredientes ('+fmt(used,0)+' g) como aproximação?'))r.yieldGrams=used;else return}
@@ -240,7 +248,7 @@ $('addIngredient').onclick=()=>addIngredientRow();
 $('saveRecipe').onclick=saveRecipe;$('newRecipe').onclick=newRecipe;$('addCustom').onclick=addCustom;
 $('exportBackup').onclick=exportBackup;$('importBackupBtn').onclick=()=>$('importBackup').click();$('importBackup').onchange=e=>{if(e.target.files[0])importBackup(e.target.files[0]);e.target.value=''};
 $('downloadPng').onclick=downloadPNG;$('printLabel').onclick=()=>window.print();
-['recipeName','yieldGrams','portionGrams'].forEach(id=>$(id).addEventListener('input',renderLabel));
+['recipeName','yieldGrams','portionGrams','unitWeight','packageCount'].forEach(id=>$(id).addEventListener('input',renderLabel));['productType','preparation'].forEach(id=>$(id).addEventListener('change',renderLabel));
 renderSaved();addIngredientRow();
 </script>
 </body>
